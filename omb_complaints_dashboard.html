@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTS Complaint Review Dashboard – Office of Citizen Services and Policy Integrity</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0A2A3E;
+    --crimson: #A31105;
+    --navy-light: #143d5c;
+    --gold: #C9A84C;
+    --bg: #F4F6F8;
+    --surface: #FFFFFF;
+    --border: #D1D9E0;
+    --text: #1A1A2E;
+    --text-muted: #5A6A7A;
+    --crimson-light: #fdf2f2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 0;
+    border-bottom: 4px solid var(--crimson);
+  }
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 24px;
+  }
+  .seal-wrap {
+    flex-shrink: 0;
+  }
+  .seal-svg { width: 72px; height: 72px; }
+  .header-titles { flex: 1; }
+  .header-agency {
+    font-family: 'Merriweather', serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #9BBAD0;
+    margin-bottom: 3px;
+  }
+  .header-title {
+    font-family: 'Merriweather', serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: white;
+    margin-bottom: 3px;
+  }
+  .header-subtitle {
+    font-size: 13px;
+    color: #9BBAD0;
+  }
+  .header-badge {
+    background: var(--crimson);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: var(--navy-light);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-bar-inner { max-width: 1400px; margin: 0 auto; width: 100%; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .filter-label { color: #9BBAD0; font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; }
+  .filter-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #cce0ef;
+    padding: 5px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--crimson);
+    border-color: var(--crimson);
+    color: white;
+  }
+  .filter-sep { color: rgba(255,255,255,0.2); }
+
+  /* ── MAIN LAYOUT ── */
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .kpi-card:hover { box-shadow: 0 4px 16px rgba(10,42,62,0.12); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--navy);
+  }
+  .kpi-card.accent::before { background: var(--crimson); }
+  .kpi-card.gold::before { background: var(--gold); }
+  .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-bottom: 8px; }
+  .kpi-value { font-family: 'Merriweather', serif; font-size: 28px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .kpi-card.accent .kpi-value { color: var(--crimson); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .kpi-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; margin-top: 4px; }
+  .kpi-delta.up { color: #c0392b; }
+  .kpi-delta.dn { color: #27ae60; }
+
+  /* ── CHARTS ROW ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media(max-width:900px) { .charts-row { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--navy);
+    color: white;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Merriweather', serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .card-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    color: #9BBAD0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .card-body { padding: 16px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap-sm { position: relative; height: 260px; }
+
+  /* ── BOTTOM ROW ── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media(max-width:900px) { .bottom-row { grid-template-columns: 1fr; } }
+
+  /* ── TABLES ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table thead th {
+    background: var(--navy);
+    color: white;
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .data-table thead th:not(:first-child) { text-align: right; }
+  .data-table tbody tr:nth-child(even) { background: #f7f9fb; }
+  .data-table tbody tr:hover { background: #edf3f8; }
+  .data-table tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .data-table tbody td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-table .total-row td { font-weight: 700; background: #EBF2F8; border-top: 2px solid var(--navy); }
+  .rate-pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fdf2f2;
+    color: var(--crimson);
+  }
+  .rate-pill.low { background: #edfdf3; color: #1a7a3c; }
+  .rate-pill.mid { background: #fff8e6; color: #7a5a00; }
+
+  /* ── YEAR COMPARE ── */
+  .year-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .year-block { text-align: center; padding: 12px; }
+  .year-block .yr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+  .year-block .val { font-family: 'Merriweather', serif; font-size: 26px; font-weight: 700; color: var(--navy); }
+  .year-block .sub { font-size: 11px; color: var(--text-muted); }
+  .year-divider { border-left: 1px solid var(--border); }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--navy);
+    color: #6b92b0;
+    text-align: center;
+    padding: 14px 24px;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  .footer span { color: #9BBAD0; }
+
+  /* ── DATA NOTE ── */
+  .data-note {
+    background: #fffbe6;
+    border: 1px solid #e8d87f;
+    border-left: 4px solid var(--gold);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #5a4800;
+    margin-bottom: 20px;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="seal-wrap">
+      <!-- Kentucky Ombudsman Seal SVG -->
+      <img src="data:image/png;base64,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" alt="Office of the Ombudsman seal" style="width:72px;height:72px;opacity:0.9">
+    </div>
+    <div class="header-titles">
+      <div class="header-agency">Kentucky Office of Auditor of Public Accounts &nbsp;·&nbsp; Commonwealth Office of the Ombudsman</div>
+      <div class="header-title">Complaint Tracking System — Review Dashboard</div>
+      <div class="header-subtitle">Office of Citizen Services and Policy Integrity</div>
+    </div>
+    <div class="header-badge"></div>
+  </div>
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-bar-inner">
+      <span class="filter-label">View Year:</span>
+      <button class="filter-btn active" onclick="setYear('all')">All Data</button>
+      <button class="filter-btn" onclick="setYear(2026)">2026</button>
+      <button class="filter-btn" onclick="setYear(2025)">2025</button>
+      <button class="filter-btn" onclick="setYear(2024)">2024</button>
+      <button class="filter-btn" onclick="setYear(2023)">2023</button>
+      <button class="filter-btn" onclick="setYear(2022)">2022</button>
+      <button class="filter-btn" onclick="setYear(2021)">2021</button>
+      <span class="filter-sep">|</span>
+      <span class="filter-label">Jan 2021 – Jan 2026 &nbsp;·&nbsp; 61 Reports</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="data-note">
+    <strong>Data Source:</strong> CHFS Complaint Tracking System — Monthly Branch Master Reports extracted from source PDFs. This dataset covers <strong>January 2021 through January 2026</strong> (61 reports), with complete monthly coverage for 2021–2025 and January 2026. Reports from July 2024 onward are issued under the Commonwealth Office of the Ombudsman.<br><br>
+    <strong>Contacts</strong> include all topics logged — complaints, inquiries for information, referrals, and other interactions. <strong>Justified</strong> means the complaint was reviewed and found to have merit, with actionable items identified.
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="section-label">Summary — All Available Months</div>
+  <div class="kpi-grid" id="kpiGrid">
+    <!-- populated by JS -->
+  </div>
+
+  <!-- MAIN TREND CHART -->
+  <div class="section-label">Monthly Trends</div>
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Total Contacts &amp; Justified Topics by Month</span>
+        <span class="card-badge" title="Contacts include all logged topics (complaints, inquiries, referrals, etc.). Justified = complaint reviewed and found to have merit, with actionable items.">hover for definitions</span>
+        <span class="card-badge" id="trendBadge">Jan 2022 – Oct 2023</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" title="Percentage of contacts that were reviewed and found to have merit">Justification Rate by Month</span>
+        <span class="card-badge">% Justified</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap-sm">
+          <canvas id="rateChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="section-label">Category Breakdown &amp; Year Comparison</div>
+  <div class="bottom-row">
+    <!-- Category Table -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Contacts by Major Category</span>
+        <span class="card-badge" id="catBadge">All Months</span>
+      </div>
+      <div class="card-body" style="padding:0; overflow:auto; max-height:380px;">
+        <table class="data-table" id="catTable">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th title="All logged topics — complaints, inquiries, referrals, and other interactions">Contacts</th>
+              <th title="Reviewed and found to have merit, with actionable items">Justified</th>
+              <th>Rate</th>
+            </tr>
+          </thead>
+          <tbody id="catBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Monthly summary table -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Monthly Report Summary</span>
+        <span class="card-badge" id="monthBadge">All</span>
+      </div>
+      <div class="card-body" style="padding:0; overflow:auto; max-height:380px;">
+        <table class="data-table" id="monthTable">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th title="All logged topics — complaints, inquiries, referrals, and other interactions">Contacts</th>
+              <th title="Reviewed and found to have merit, with actionable items">Justified</th>
+              <th>Rate</th>
+            </tr>
+          </thead>
+          <tbody id="monthBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAR CHART: Category comparison 2022 vs 2023 -->
+  <div class="section-label">Year-Over-Year Category Comparison</div>
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header">
+      <span class="card-title">Contacts by Category — 2022 vs 2023</span>
+      <span class="card-badge">Full Calendar Years</span>
+    </div>
+    <div class="card-body">
+      <div style="position:relative; height:300px;">
+        <canvas id="yoyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <span>Kentucky Office of Auditor of Public Accounts · Commonwealth Office of the Ombudsman</span> &nbsp;·&nbsp;
+  Office of Citizen Services and Policy Integrity &nbsp;·&nbsp;
+  CHFS Complaint Tracking System Data &nbsp;·&nbsp;
+  <span></span>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+//  DATA  (extracted from PDFs)
+// ─────────────────────────────────────────────
+const monthlyData = [
+  // 2021 (11 months — missing Sep)
+  { month:'Jan', year:2021, label:'Jan 2021', contacts:7314, justified:80, branch:'CRB',
+    cats:{ familySupport:{c:2770,j:24}, childCare:{c:46,j:0}, dms:{c:126,j:0}, incomeSupport:{c:203,j:32}, oig:{c:126,j:0}, other:{c:797,j:24}, publicHealth:{c:3246,j:0} }},
+  { month:'Feb', year:2021, label:'Feb 2021', contacts:7001, justified:74, branch:'CRB',
+    cats:{ familySupport:{c:2844,j:29}, childCare:{c:38,j:0}, dms:{c:114,j:1}, incomeSupport:{c:204,j:39}, oig:{c:127,j:0}, other:{c:933,j:5}, publicHealth:{c:2741,j:0} }},
+  { month:'Mar', year:2021, label:'Mar 2021', contacts:6780, justified:143, branch:'CRB',
+    cats:{ familySupport:{c:3069,j:42}, childCare:{c:45,j:1}, dms:{c:136,j:1}, incomeSupport:{c:256,j:80}, oig:{c:137,j:0}, other:{c:909,j:19}, publicHealth:{c:2228,j:0} }},
+  { month:'Apr', year:2021, label:'Apr 2021', contacts:4602, justified:96, branch:'CRB',
+    cats:{ familySupport:{c:2464,j:40}, childCare:{c:50,j:3}, dms:{c:142,j:2}, incomeSupport:{c:166,j:38}, oig:{c:122,j:0}, other:{c:686,j:13}, publicHealth:{c:972,j:0} }},
+  { month:'May', year:2021, label:'May 2021', contacts:3898, justified:122, branch:'CRB',
+    cats:{ familySupport:{c:2254,j:51}, childCare:{c:47,j:1}, dms:{c:151,j:2}, incomeSupport:{c:188,j:31}, oig:{c:96,j:0}, other:{c:600,j:37}, publicHealth:{c:562,j:0} }},
+  { month:'Jun', year:2021, label:'Jun 2021', contacts:3912, justified:115, branch:'CRB',
+    cats:{ familySupport:{c:2283,j:48}, childCare:{c:56,j:1}, dms:{c:189,j:2}, incomeSupport:{c:182,j:36}, oig:{c:106,j:0}, other:{c:619,j:28}, publicHealth:{c:477,j:0} }},
+  { month:'Jul', year:2021, label:'Jul 2021', contacts:4383, justified:103, branch:'CRB',
+    cats:{ familySupport:{c:2748,j:41}, childCare:{c:41,j:0}, dms:{c:172,j:0}, incomeSupport:{c:242,j:43}, oig:{c:109,j:1}, other:{c:612,j:18}, publicHealth:{c:459,j:0} }},
+  { month:'Aug', year:2021, label:'Aug 2021', contacts:4982, justified:127, branch:'CRB',
+    cats:{ familySupport:{c:3036,j:53}, childCare:{c:53,j:0}, dms:{c:145,j:0}, incomeSupport:{c:249,j:52}, oig:{c:115,j:0}, other:{c:610,j:22}, publicHealth:{c:774,j:0} }},
+  { month:'Sep', year:2021, label:'Sep 2021', contacts:4677, justified:191, branch:'CRB',
+    cats:{ familySupport:{c:2963,j:46}, childCare:{c:59,j:0}, dms:{c:127,j:0}, incomeSupport:{c:287,j:133}, oig:{c:103,j:0}, other:{c:544,j:11}, publicHealth:{c:594,j:1} }},
+  { month:'Oct', year:2021, label:'Oct 2021', contacts:3660, justified:152, branch:'CRB',
+    cats:{ familySupport:{c:2571,j:77}, childCare:{c:38,j:0}, dms:{c:105,j:0}, incomeSupport:{c:202,j:68}, oig:{c:90,j:0}, other:{c:409,j:6}, publicHealth:{c:245,j:1} }},
+  { month:'Nov', year:2021, label:'Nov 2021', contacts:3112, justified:119, branch:'CRB',
+    cats:{ familySupport:{c:2048,j:51}, childCare:{c:37,j:0}, dms:{c:101,j:0}, incomeSupport:{c:216,j:68}, oig:{c:77,j:0}, other:{c:405,j:0}, publicHealth:{c:228,j:0} }},
+  { month:'Dec', year:2021, label:'Dec 2021', contacts:3228, justified:191, branch:'CRB',
+    cats:{ familySupport:{c:2015,j:69}, childCare:{c:26,j:0}, dms:{c:91,j:0}, incomeSupport:{c:298,j:122}, oig:{c:58,j:0}, other:{c:517,j:0}, publicHealth:{c:223,j:0} }},
+  // 2022 (12 months)
+  { month:'Jan', year:2022, label:'Jan 2022', contacts:3740, justified:160, branch:'CRB',
+    cats:{ familySupport:{c:2212,j:43}, childCare:{c:30,j:0}, dms:{c:90,j:0}, incomeSupport:{c:333,j:116}, oig:{c:95,j:0}, other:{c:571,j:1}, publicHealth:{c:409,j:0} }},
+  { month:'Feb', year:2022, label:'Feb 2022', contacts:4170, justified:211, branch:'CRB',
+    cats:{ familySupport:{c:2685,j:74}, childCare:{c:31,j:0}, dms:{c:120,j:0}, incomeSupport:{c:411,j:137}, oig:{c:91,j:0}, other:{c:596,j:0}, publicHealth:{c:236,j:0} }},
+  { month:'Mar', year:2022, label:'Mar 2022', contacts:4492, justified:149, branch:'FSB',
+    cats:{ familySupport:{c:3002,j:80}, childCare:{c:49,j:0}, dms:{c:138,j:1}, incomeSupport:{c:225,j:68}, oig:{c:71,j:0}, other:{c:668,j:0}, publicHealth:{c:339,j:0} }},
+  { month:'Apr', year:2022, label:'Apr 2022', contacts:3512, justified:148, branch:'FSB',
+    cats:{ familySupport:{c:2160,j:72}, childCare:{c:33,j:0}, dms:{c:130,j:0}, incomeSupport:{c:274,j:76}, oig:{c:86,j:0}, other:{c:607,j:0}, publicHealth:{c:222,j:0} }},
+  { month:'May', year:2022, label:'May 2022', contacts:3919, justified:234, branch:'FSB',
+    cats:{ familySupport:{c:2421,j:101}, childCare:{c:40,j:1}, dms:{c:146,j:2}, incomeSupport:{c:416,j:130}, oig:{c:91,j:0}, other:{c:586,j:0}, publicHealth:{c:219,j:0} }},
+  { month:'Jun', year:2022, label:'Jun 2022', contacts:4145, justified:268, branch:'FSB',
+    cats:{ familySupport:{c:2579,j:121}, childCare:{c:46,j:0}, dms:{c:121,j:0}, incomeSupport:{c:379,j:147}, oig:{c:74,j:0}, other:{c:695,j:0}, publicHealth:{c:251,j:0} }},
+  { month:'Jul', year:2022, label:'Jul 2022', contacts:3552, justified:210, branch:'FSB',
+    cats:{ familySupport:{c:2324,j:161}, childCare:{c:41,j:2}, dms:{c:116,j:0}, incomeSupport:{c:190,j:47}, oig:{c:70,j:0}, other:{c:637,j:0}, publicHealth:{c:174,j:0} }},
+  { month:'Aug', year:2022, label:'Aug 2022', contacts:3501, justified:204, branch:'FSB',
+    cats:{ familySupport:{c:2010,j:125}, childCare:{c:54,j:0}, dms:{c:136,j:0}, incomeSupport:{c:279,j:79}, oig:{c:116,j:0}, other:{c:668,j:0}, publicHealth:{c:238,j:0} }},
+  { month:'Sep', year:2022, label:'Sep 2022', contacts:4165, justified:342, branch:'FSB',
+    cats:{ familySupport:{c:2554,j:232}, childCare:{c:58,j:2}, dms:{c:130,j:0}, incomeSupport:{c:315,j:104}, oig:{c:109,j:0}, other:{c:582,j:4}, publicHealth:{c:417,j:0} }},
+  { month:'Oct', year:2022, label:'Oct 2022', contacts:4093, justified:274, branch:'FSB',
+    cats:{ familySupport:{c:2513,j:168}, childCare:{c:41,j:0}, dms:{c:163,j:1}, incomeSupport:{c:301,j:99}, oig:{c:100,j:0}, other:{c:578,j:5}, publicHealth:{c:397,j:1} }},
+  { month:'Nov', year:2022, label:'Nov 2022', contacts:3469, justified:293, branch:'FSB',
+    cats:{ familySupport:{c:2122,j:149}, childCare:{c:21,j:0}, dms:{c:124,j:0}, incomeSupport:{c:314,j:140}, oig:{c:85,j:0}, other:{c:582,j:4}, publicHealth:{c:221,j:0} }},
+  { month:'Dec', year:2022, label:'Dec 2022', contacts:3497, justified:292, branch:'FSB',
+    cats:{ familySupport:{c:2100,j:153}, childCare:{c:37,j:1}, dms:{c:117,j:0}, incomeSupport:{c:376,j:135}, oig:{c:82,j:0}, other:{c:583,j:2}, publicHealth:{c:202,j:1} }},
+  // 2023 (12 months)
+  { month:'Jan', year:2023, label:'Jan 2023', contacts:4004, justified:395, branch:'FSB',
+    cats:{ familySupport:{c:2523,j:257}, childCare:{c:42,j:0}, dms:{c:151,j:0}, incomeSupport:{c:382,j:129}, oig:{c:77,j:0}, other:{c:624,j:9}, publicHealth:{c:205,j:0} }},
+  { month:'Feb', year:2023, label:'Feb 2023', contacts:3154, justified:238, branch:'FSB',
+    cats:{ familySupport:{c:1787,j:123}, childCare:{c:34,j:0}, dms:{c:163,j:1}, incomeSupport:{c:327,j:108}, oig:{c:94,j:0}, other:{c:558,j:6}, publicHealth:{c:191,j:0} }},
+  { month:'Mar', year:2023, label:'Mar 2023', contacts:3502, justified:290, branch:'FSB',
+    cats:{ familySupport:{c:1944,j:170}, childCare:{c:38,j:0}, dms:{c:224,j:0}, incomeSupport:{c:331,j:120}, oig:{c:100,j:0}, other:{c:657,j:0}, publicHealth:{c:208,j:0} }},
+  { month:'Apr', year:2023, label:'Apr 2023', contacts:2995, justified:280, branch:'FSB',
+    cats:{ familySupport:{c:1651,j:160}, childCare:{c:29,j:0}, dms:{c:180,j:2}, incomeSupport:{c:267,j:109}, oig:{c:92,j:0}, other:{c:590,j:9}, publicHealth:{c:186,j:0} }},
+  { month:'May', year:2023, label:'May 2023', contacts:3735, justified:326, branch:'FSB',
+    cats:{ familySupport:{c:2249,j:183}, childCare:{c:62,j:0}, dms:{c:180,j:1}, incomeSupport:{c:301,j:132}, oig:{c:99,j:0}, other:{c:627,j:10}, publicHealth:{c:217,j:0} }},
+  { month:'Jun', year:2023, label:'Jun 2023', contacts:3619, justified:356, branch:'FSB',
+    cats:{ familySupport:{c:2349,j:204}, childCare:{c:39,j:0}, dms:{c:150,j:0}, incomeSupport:{c:294,j:151}, oig:{c:95,j:0}, other:{c:553,j:1}, publicHealth:{c:139,j:0} }},
+  { month:'Jul', year:2023, label:'Jul 2023', contacts:3836, justified:606, branch:'FSB',
+    cats:{ familySupport:{c:2702,j:437}, childCare:{c:26,j:0}, dms:{c:123,j:0}, incomeSupport:{c:299,j:168}, oig:{c:69,j:0}, other:{c:508,j:1}, publicHealth:{c:109,j:0} }},
+  { month:'Aug', year:2023, label:'Aug 2023', contacts:4455, justified:725, branch:'FSB',
+    cats:{ familySupport:{c:2848,j:435}, childCare:{c:59,j:0}, dms:{c:172,j:3}, incomeSupport:{c:458,j:286}, oig:{c:94,j:0}, other:{c:659,j:1}, publicHealth:{c:165,j:0} }},
+  { month:'Sep', year:2023, label:'Sep 2023', contacts:3876, justified:467, branch:'FSB',
+    cats:{ familySupport:{c:2668,j:356}, childCare:{c:32,j:0}, dms:{c:126,j:0}, incomeSupport:{c:236,j:111}, oig:{c:95,j:0}, other:{c:578,j:0}, publicHealth:{c:141,j:0} }},
+  { month:'Oct', year:2023, label:'Oct 2023', contacts:3695, justified:499, branch:'FSB',
+    cats:{ familySupport:{c:2379,j:278}, childCare:{c:39,j:0}, dms:{c:130,j:1}, incomeSupport:{c:349,j:220}, oig:{c:79,j:0}, other:{c:577,j:0}, publicHealth:{c:142,j:0} }},
+  { month:'Nov', year:2023, label:'Nov 2023', contacts:3600, justified:466, branch:'FSB',
+    cats:{ familySupport:{c:2125,j:216}, childCare:{c:50,j:0}, dms:{c:180,j:2}, incomeSupport:{c:371,j:248}, oig:{c:86,j:0}, other:{c:588,j:0}, publicHealth:{c:200,j:0} }},
+  { month:'Dec', year:2023, label:'Dec 2023', contacts:3050, justified:380, branch:'FSB',
+    cats:{ familySupport:{c:1808,j:171}, childCare:{c:34,j:0}, dms:{c:145,j:3}, incomeSupport:{c:322,j:206}, oig:{c:72,j:0}, other:{c:550,j:0}, publicHealth:{c:119,j:0} }},
+  // 2024 (11 months — missing Sep)
+  { month:'Jan', year:2024, label:'Jan 2024', contacts:3940, justified:349, branch:'FSB',
+    cats:{ familySupport:{c:2468,j:240}, childCare:{c:44,j:0}, dms:{c:187,j:7}, incomeSupport:{c:220,j:100}, oig:{c:118,j:0}, other:{c:735,j:2}, publicHealth:{c:168,j:0} }},
+  { month:'Feb', year:2024, label:'Feb 2024', contacts:3620, justified:349, branch:'FSB',
+    cats:{ familySupport:{c:2074,j:163}, childCare:{c:43,j:0}, dms:{c:188,j:2}, incomeSupport:{c:350,j:182}, oig:{c:123,j:0}, other:{c:694,j:2}, publicHealth:{c:148,j:0} }},
+  { month:'Mar', year:2024, label:'Mar 2024', contacts:3376, justified:359, branch:'FSB',
+    cats:{ familySupport:{c:1797,j:63}, childCare:{c:31,j:0}, dms:{c:198,j:5}, incomeSupport:{c:438,j:289}, oig:{c:109,j:0}, other:{c:624,j:2}, publicHealth:{c:179,j:0} }},
+  { month:'Apr', year:2024, label:'Apr 2024', contacts:3654, justified:472, branch:'FSB',
+    cats:{ familySupport:{c:1828,j:103}, childCare:{c:46,j:0}, dms:{c:192,j:3}, incomeSupport:{c:518,j:364}, oig:{c:97,j:0}, other:{c:798,j:2}, publicHealth:{c:175,j:0} }},
+  { month:'May', year:2024, label:'May 2024', contacts:3436, justified:462, branch:'FSB',
+    cats:{ familySupport:{c:1787,j:105}, childCare:{c:59,j:0}, dms:{c:186,j:6}, incomeSupport:{c:476,j:351}, oig:{c:99,j:0}, other:{c:686,j:0}, publicHealth:{c:143,j:0} }},
+  { month:'Jun', year:2024, label:'Jun 2024', contacts:2761, justified:252, branch:'FSB',
+    cats:{ familySupport:{c:1544,j:102}, childCare:{c:31,j:0}, dms:{c:127,j:3}, incomeSupport:{c:276,j:146}, oig:{c:83,j:0}, other:{c:556,j:1}, publicHealth:{c:144,j:0} }},
+  { month:'Jul', year:2024, label:'Jul 2024', contacts:2432, justified:251, branch:'FSB',
+    cats:{ familySupport:{c:1530,j:113}, childCare:{c:11,j:0}, dms:{c:103,j:4}, incomeSupport:{c:223,j:133}, oig:{c:60,j:0}, other:{c:446,j:1}, publicHealth:{c:59,j:0} }},
+  { month:'Aug', year:2024, label:'Aug 2024', contacts:2112, justified:539, branch:'FSB',
+    cats:{ familySupport:{c:972,j:134}, childCare:{c:16,j:0}, dms:{c:89,j:4}, incomeSupport:{c:472,j:396}, oig:{c:83,j:1}, other:{c:440,j:3}, publicHealth:{c:40,j:1} }},
+  { month:'Sep', year:2024, label:'Sep 2024', contacts:1629, justified:286, branch:'FSB',
+    cats:{ familySupport:{c:880,j:88}, childCare:{c:4,j:0}, dms:{c:48,j:0}, incomeSupport:{c:252,j:197}, oig:{c:40,j:0}, other:{c:372,j:1}, publicHealth:{c:33,j:0} }},
+  { month:'Oct', year:2024, label:'Oct 2024', contacts:1742, justified:253, branch:'FSB',
+    cats:{ familySupport:{c:905,j:104}, childCare:{c:6,j:0}, dms:{c:81,j:5}, incomeSupport:{c:202,j:141}, oig:{c:64,j:0}, other:{c:456,j:3}, publicHealth:{c:28,j:0} }},
+  { month:'Nov', year:2024, label:'Nov 2024', contacts:1656, justified:522, branch:'FSB',
+    cats:{ familySupport:{c:677,j:80}, childCare:{c:3,j:0}, dms:{c:60,j:4}, incomeSupport:{c:487,j:437}, oig:{c:50,j:0}, other:{c:365,j:1}, publicHealth:{c:14,j:0} }},
+  { month:'Dec', year:2024, label:'Dec 2024', contacts:1601, justified:426, branch:'FSB',
+    cats:{ familySupport:{c:748,j:108}, childCare:{c:6,j:0}, dms:{c:55,j:5}, incomeSupport:{c:380,j:313}, oig:{c:41,j:0}, other:{c:349,j:0}, publicHealth:{c:22,j:0} }},
+  // 2025 (12 months)
+  { month:'Jan', year:2025, label:'Jan 2025', contacts:1683, justified:246, branch:'FSB',
+    cats:{ familySupport:{c:876,j:121}, childCare:{c:5,j:0}, dms:{c:52,j:1}, incomeSupport:{c:165,j:124}, oig:{c:59,j:0}, other:{c:507,j:0}, publicHealth:{c:19,j:0} }},
+  { month:'Feb', year:2025, label:'Feb 2025', contacts:1671, justified:348, branch:'FSB',
+    cats:{ familySupport:{c:769,j:106}, childCare:{c:4,j:0}, dms:{c:75,j:7}, incomeSupport:{c:309,j:234}, oig:{c:38,j:0}, other:{c:454,j:1}, publicHealth:{c:22,j:0} }},
+  { month:'Mar', year:2025, label:'Mar 2025', contacts:1695, justified:322, branch:'FSB',
+    cats:{ familySupport:{c:773,j:96}, childCare:{c:28,j:0}, dms:{c:62,j:5}, incomeSupport:{c:307,j:221}, oig:{c:40,j:0}, other:{c:469,j:0}, publicHealth:{c:16,j:0} }},
+  { month:'Apr', year:2025, label:'Apr 2025', contacts:1609, justified:372, branch:'FSB',
+    cats:{ familySupport:{c:659,j:78}, childCare:{c:6,j:0}, dms:{c:77,j:3}, incomeSupport:{c:377,j:291}, oig:{c:53,j:0}, other:{c:411,j:0}, publicHealth:{c:26,j:0} }},
+  { month:'May', year:2025, label:'May 2025', contacts:1639, justified:428, branch:'FSB',
+    cats:{ familySupport:{c:680,j:79}, childCare:{c:3,j:1}, dms:{c:81,j:8}, incomeSupport:{c:381,j:339}, oig:{c:37,j:0}, other:{c:436,j:1}, publicHealth:{c:21,j:0} }},
+  { month:'Jun', year:2025, label:'Jun 2025', contacts:1916, justified:310, branch:'FSB',
+    cats:{ familySupport:{c:888,j:86}, childCare:{c:5,j:0}, dms:{c:85,j:9}, incomeSupport:{c:259,j:212}, oig:{c:57,j:0}, other:{c:567,j:2}, publicHealth:{c:55,j:1} }},
+  { month:'Jul', year:2025, label:'Jul 2025', contacts:2306, justified:123, branch:'FSB',
+    cats:{ familySupport:{c:1304,j:116}, childCare:{c:19,j:0}, dms:{c:127,j:7}, incomeSupport:{c:57,j:0}, oig:{c:80,j:0}, other:{c:650,j:0}, publicHealth:{c:69,j:0} }},
+  { month:'Aug', year:2025, label:'Aug 2025', contacts:2527, justified:109, branch:'FSB',
+    cats:{ familySupport:{c:1545,j:102}, childCare:{c:5,j:0}, dms:{c:96,j:7}, incomeSupport:{c:39,j:0}, oig:{c:65,j:0}, other:{c:649,j:0}, publicHealth:{c:128,j:0} }},
+  { month:'Sep', year:2025, label:'Sep 2025', contacts:2374, justified:110, branch:'FSB',
+    cats:{ familySupport:{c:1415,j:104}, childCare:{c:8,j:1}, dms:{c:105,j:5}, incomeSupport:{c:31,j:0}, oig:{c:64,j:0}, other:{c:699,j:0}, publicHealth:{c:52,j:0} }},
+  { month:'Oct', year:2025, label:'Oct 2025', contacts:2514, justified:163, branch:'FSB',
+    cats:{ familySupport:{c:1595,j:130}, childCare:{c:12,j:1}, dms:{c:96,j:7}, incomeSupport:{c:37,j:0}, oig:{c:54,j:0}, other:{c:677,j:25}, publicHealth:{c:43,j:0} }},
+  { month:'Nov', year:2025, label:'Nov 2025', contacts:2166, justified:102, branch:'FSB',
+    cats:{ familySupport:{c:1414,j:98}, childCare:{c:6,j:0}, dms:{c:92,j:4}, incomeSupport:{c:20,j:0}, oig:{c:43,j:0}, other:{c:558,j:0}, publicHealth:{c:33,j:0} }},
+  { month:'Dec', year:2025, label:'Dec 2025', contacts:2681, justified:138, branch:'FSB',
+    cats:{ familySupport:{c:1873,j:130}, childCare:{c:9,j:0}, dms:{c:93,j:8}, incomeSupport:{c:24,j:0}, oig:{c:55,j:0}, other:{c:596,j:0}, publicHealth:{c:31,j:0} }},
+  // 2026 (1 month)
+  { month:'Jan', year:2026, label:'Jan 2026', contacts:2783, justified:150, branch:'FSB',
+    cats:{ familySupport:{c:1956,j:137}, childCare:{c:18,j:0}, dms:{c:116,j:13}, incomeSupport:{c:33,j:0}, oig:{c:69,j:0}, other:{c:555,j:0}, publicHealth:{c:36,j:0} }},
+];
+
+const CAT_LABELS = {
+  familySupport: 'Family Support',
+  childCare:     'Child Care',
+  dms:           'DMS / Managed Care',
+  incomeSupport: 'Income Support',
+  oig:           'Office of Inspector General',
+  other:         'Other',
+  publicHealth:  'Public Health'
+};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let currentYear = 'all';
+let trendChart, rateChart, yoyChart;
+
+function getFiltered() {
+  if (currentYear === 'all') return monthlyData;
+  return monthlyData.filter(d => d.year === currentYear);
+}
+
+function setYear(yr) {
+  currentYear = yr;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+// ─────────────────────────────────────────────
+//  KPI CARDS
+// ─────────────────────────────────────────────
+function renderKPIs() {
+  const data = getFiltered();
+  const totalContacts   = data.reduce((s,d) => s + d.contacts, 0);
+  const totalJustified  = data.reduce((s,d) => s + d.justified, 0);
+  const avgRate         = (totalJustified / totalContacts * 100).toFixed(1);
+  const maxMonth        = data.reduce((a,b) => b.justified > a.justified ? b : a);
+  const avgMonthly      = Math.round(totalContacts / data.length);
+
+  // YOY justified rate change (if showing all)
+  let deltaHtml = '';
+  if (currentYear === 'all') {
+    const y22 = monthlyData.filter(d=>d.year===2022);
+    const y23 = monthlyData.filter(d=>d.year===2023);
+    const r22 = y22.reduce((s,d)=>s+d.justified,0) / y22.reduce((s,d)=>s+d.contacts,0) * 100;
+    const r23 = y23.reduce((s,d)=>s+d.justified,0) / y23.reduce((s,d)=>s+d.contacts,0) * 100;
+    const diff = (r23 - r22).toFixed(1);
+    const cls  = diff > 0 ? 'up' : 'dn';
+    const arr  = diff > 0 ? '▲' : '▼';
+    deltaHtml  = `<div class="kpi-delta ${cls}">${arr} ${Math.abs(diff)}pp 2023 vs 2022</div>`;
+  }
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total Contacts</div>
+      <div class="kpi-value">${totalContacts.toLocaleString()}</div>
+      <div class="kpi-sub">${data.length} months of data</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Total Justified</div>
+      <div class="kpi-value">${totalJustified.toLocaleString()}</div>
+      <div class="kpi-sub">complaints found justified</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">Overall Justification Rate</div>
+      <div class="kpi-value">${avgRate}%</div>
+      ${deltaHtml}
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Monthly Contacts</div>
+      <div class="kpi-value">${avgMonthly.toLocaleString()}</div>
+      <div class="kpi-sub">per reporting period</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Highest Justified Month</div>
+      <div class="kpi-value">${maxMonth.justified}</div>
+      <div class="kpi-sub">${maxMonth.label}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Months in This View</div>
+      <div class="kpi-value">${data.length}</div>
+      <div class="kpi-sub">${data[0].label} – ${data[data.length-1].label}</div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+//  TREND CHART
+// ─────────────────────────────────────────────
+function renderTrendChart() {
+  const data  = getFiltered();
+  const labels   = data.map(d => d.label);
+  const contacts = data.map(d => d.contacts);
+  const justified = data.map(d => d.justified);
+
+  document.getElementById('trendBadge').textContent =
+    data.length > 0 ? `${data[0].label} – ${data[data.length-1].label}` : '';
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Total Contacts',
+          data: contacts,
+          backgroundColor: 'rgba(10,42,62,0.75)',
+          borderRadius: 3,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Justified Topics',
+          data: justified,
+          backgroundColor: 'rgba(163,17,5,0.85)',
+          borderRadius: 3,
+          yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font:{size:11}, boxWidth:12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
+          }
+        }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#eaeaea'}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  RATE CHART
+// ─────────────────────────────────────────────
+function renderRateChart() {
+  const data   = getFiltered();
+  const labels = data.map(d => d.label);
+  const rates  = data.map(d => +(d.justified / d.contacts * 100).toFixed(2));
+
+  const ctx = document.getElementById('rateChart').getContext('2d');
+  if (rateChart) rateChart.destroy();
+  rateChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Justification Rate %',
+        data: rates,
+        borderColor: '#A31105',
+        backgroundColor: 'rgba(163,17,5,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#A31105',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` Rate: ${c.parsed.y}%` } }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: {
+          grid:{color:'#eaeaea'},
+          ticks:{font:{size:10}, callback: v => v+'%'}
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  CATEGORY TABLE
+// ─────────────────────────────────────────────
+function renderCatTable() {
+  const data = getFiltered();
+  document.getElementById('catBadge').textContent =
+    currentYear === 'all' ? 'All Months' : `${currentYear} (${data.length} months)`;
+
+  const totals = {};
+  Object.keys(CAT_LABELS).forEach(k => totals[k] = {c:0,j:0});
+  data.forEach(d => {
+    Object.keys(CAT_LABELS).forEach(k => {
+      totals[k].c += (d.cats[k]||{c:0}).c;
+      totals[k].j += (d.cats[k]||{j:0}).j;
+    });
+  });
+
+  const rows = Object.entries(totals)
+    .sort((a,b) => b[1].c - a[1].c)
+    .map(([k,v]) => {
+      const rate = v.c > 0 ? (v.j/v.c*100).toFixed(1) : '0.0';
+      const pillClass = +rate > 5 ? 'rate-pill' : (+rate > 2 ? 'rate-pill mid' : 'rate-pill low');
+      return `<tr>
+        <td>${CAT_LABELS[k]}</td>
+        <td>${v.c.toLocaleString()}</td>
+        <td>${v.j.toLocaleString()}</td>
+        <td><span class="${pillClass}">${rate}%</span></td>
+      </tr>`;
+    });
+
+  const grandC = Object.values(totals).reduce((s,v)=>s+v.c,0);
+  const grandJ = Object.values(totals).reduce((s,v)=>s+v.j,0);
+  const grandR = (grandJ/grandC*100).toFixed(1);
+
+  document.getElementById('catBody').innerHTML = rows.join('') +
+    `<tr class="total-row"><td>TOTAL</td><td>${grandC.toLocaleString()}</td><td>${grandJ.toLocaleString()}</td><td>${grandR}%</td></tr>`;
+}
+
+// ─────────────────────────────────────────────
+//  MONTHLY TABLE
+// ─────────────────────────────────────────────
+function renderMonthTable() {
+  const data = getFiltered();
+  document.getElementById('monthBadge').textContent =
+    currentYear === 'all' ? 'All' : currentYear;
+
+  const rows = data.map(d => {
+    const rate = (d.justified/d.contacts*100).toFixed(1);
+    const pillClass = +rate > 10 ? 'rate-pill' : (+rate > 6 ? 'rate-pill mid' : 'rate-pill low');
+    return `<tr>
+      <td>${d.label}</td>
+      <td>${d.contacts.toLocaleString()}</td>
+      <td>${d.justified.toLocaleString()}</td>
+      <td><span class="${pillClass}">${rate}%</span></td>
+    </tr>`;
+  });
+
+  const totC = data.reduce((s,d)=>s+d.contacts,0);
+  const totJ = data.reduce((s,d)=>s+d.justified,0);
+  const totR = (totJ/totC*100).toFixed(1);
+
+  document.getElementById('monthBody').innerHTML = rows.join('') +
+    `<tr class="total-row"><td>TOTAL</td><td>${totC.toLocaleString()}</td><td>${totJ.toLocaleString()}</td><td>${totR}%</td></tr>`;
+}
+
+// ─────────────────────────────────────────────
+//  YOY BAR CHART
+// ─────────────────────────────────────────────
+function renderYoYChart() {
+  const cats  = Object.keys(CAT_LABELS);
+  // Compare the two full calendar years available
+  const d22   = monthlyData.filter(d => d.year === 2022);
+  const d23   = monthlyData.filter(d => d.year === 2023);
+
+  const sum = (arr, cat) => arr.reduce((s,d)=>s+(d.cats[cat]||{c:0}).c,0);
+  const vals22 = cats.map(c => sum(d22, c));
+  const vals23 = cats.map(c => sum(d23, c));
+  const catNames = cats.map(c => CAT_LABELS[c]);
+
+  const ctx = document.getElementById('yoyChart').getContext('2d');
+  if (yoyChart) yoyChart.destroy();
+  yoyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: catNames,
+      datasets: [
+        { label: '2022 (12 months)', data: vals22, backgroundColor: 'rgba(10,42,62,0.75)', borderRadius: 3 },
+        { label: '2023 (12 months)', data: vals23, backgroundColor: 'rgba(163,17,5,0.75)', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'top', labels:{font:{size:11}, boxWidth:12} },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}` } }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:11}} },
+        y: { grid:{color:'#eaeaea'}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  RENDER ALL
+// ─────────────────────────────────────────────
+function render() {
+  renderKPIs();
+  renderTrendChart();
+  renderRateChart();
+  renderCatTable();
+  renderMonthTable();
+  if (currentYear === 'all') {
+    document.querySelector('.card:last-of-type')?.style?.removeProperty('display');
+  }
+  // YoY chart only meaningful when viewing all
+  const yoyCard = document.getElementById('yoyChart').closest('.card');
+  yoyCard.style.display = (currentYear === 'all') ? '' : 'none';
+  if (currentYear === 'all') renderYoYChart();
+}
+
+window.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
